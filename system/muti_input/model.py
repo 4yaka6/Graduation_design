@@ -6,12 +6,12 @@ from transformers import RobertaModel
 
 # 心理学 PAD/VA 映射表
 VA_MAP = torch.tensor([
-    [-0.51, 0.59],  # Anger
-    [-0.64, 0.52],  # Frustrated
-    [0.0, 0.0],     # Neutral
-    [0.81, 0.51],   # Happiness
-    [0.62, 0.82],   # Excited
-    [-0.63, -0.27]  # Sadness
+    [-0.67, 0.75],  # Anger
+    [-0.63, 0.45],  # Frustrated
+    [0.0, 0.0],  # Neutral
+    [0.7, 0.55],  # Happiness
+    [0.85, 0.85],  # Excited
+    [-0.75, -0.45]  # Sadness
 ])
 
 class ImageModel(nn.Module):

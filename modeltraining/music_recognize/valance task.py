@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
@@ -8,15 +7,12 @@ import os
 import random
 from sklearn.metrics import r2_score
 
-
-# ===================== 1. 环境固定 =====================
 def seed_everything(seed=42):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
-
 
 seed_everything(42)
 
@@ -29,8 +25,6 @@ CONFIG = {
     "weight_decay": 1e-3
 }
 
-
-# ===================== 2. 异构特征拼接架构 =====================
 class ValenceModelPro(nn.Module):
     def __init__(self):
         super(ValenceModelPro, self).__init__()
@@ -49,7 +43,6 @@ class ValenceModelPro(nn.Module):
             nn.LayerNorm(64),
             nn.ReLU()
         )
-
         # --- 融合层 ---
         self.fusion_dense = nn.Sequential(
             nn.Linear(128 + 64, 128),
@@ -93,8 +86,6 @@ class ValenceModelPro(nn.Module):
 
         return self.out_head(fused)
 
-
-# ===================== 3. 数据加载器 =====================
 class ValenceProDataset(Dataset):
     def __init__(self, set_name="train", data_path="data/processed_data"):
         self.set_name = set_name
@@ -119,8 +110,6 @@ class ValenceProDataset(Dataset):
         return torch.FloatTensor(self.gtf[s:e]), torch.FloatTensor(self.harm[s:e]), torch.FloatTensor(
             self.target[s:e]).unsqueeze(-1)
 
-
-# ===================== 4. 训练与保存逻辑 =====================
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     save_dir = "models_Valence_Pro"
@@ -134,7 +123,7 @@ if __name__ == "__main__":
     criterion = nn.MSELoss()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=3)
 
-    print(f"🚀 启动【最终完善版】训练 | 逐轮保存模式开启")
+    print(f"训练开启")
 
     for epoch in range(1, CONFIG["epochs"] + 1):
         model.train()
@@ -165,9 +154,8 @@ if __name__ == "__main__":
 
         # 打印状态
         print(f"Epoch {epoch:02d} | Train Loss: {avg_train:.4f} | Val Loss: {avg_val:.4f} | R2: {r2:.4f}")
-        # 这里使用 batch 内最后一个 p 和 y 计算均值进行监控
+        # 使用 batch 内最后一个 p 和 y 计算均值进行监控
         print(f"Pred Mean: {p.mean().item():.4f}, Target Mean: {y.mean().item():.4f}")
 
-        # 逐轮保存模型
         save_path = os.path.join(save_dir, f"ep{epoch:02d}_loss{avg_val:.4f}_r2{r2:.4f}.pth")
         torch.save(model.state_dict(), save_path)

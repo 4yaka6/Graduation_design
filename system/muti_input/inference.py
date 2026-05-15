@@ -10,7 +10,6 @@ from deep_translator import GoogleTranslator
 from torchvision import models, transforms
 from transformers import RobertaModel, RobertaTokenizer
 
-# ================= 路径与全局定义 =================
 INPUT_IMAGE_DIR = "uploadimage"  # 图片文件夹
 INPUT_TEXT_FILE = "uploadtext.txt"  # 文本文件路径
 
@@ -87,7 +86,6 @@ class ProcessImage:
         self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
         self.transform = transforms.Compose([
-            # 这里其实可以不用 Resize，因为我们在切割时已经处理好了，但保留它作为最后一道防线
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -110,11 +108,11 @@ class ProcessImage:
             face_roi = img_bgr[y1:y2, x1:x2]
             face_resized = cv2.resize(face_roi, (224, 224), interpolation=cv2.INTER_AREA)
             final_img = cv2.cvtColor(face_resized, cv2.COLOR_BGR2RGB)
-            print("✅ 成功提取完整人脸并缩放至 224x224")
+            print("成功提取完整人脸并缩放至 224x224")
         else:
             img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
             final_img = cv2.resize(img_rgb, (224, 224), interpolation=cv2.INTER_AREA)
-            print("⚠️ 未检测到人脸，已将原图整体缩放")
+            print(" 未检测到人脸，已将原图整体缩放")
 
         pil_img = Image.fromarray(final_img)
         return self.transform(pil_img).unsqueeze(0)
@@ -127,13 +125,13 @@ class ProcessImage:
             img_bgr = cv2.imread(img_path)
             return self._build_tensor_from_bgr(img_bgr)
         except Exception as e:
-            print(f"❌ 图像处理失败: {str(e)}")
+            print(f"图像处理失败: {str(e)}")
             return None
 
     def get_processed_tensor(self):
         files = [f for f in os.listdir(self.input_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
         if not files:
-            print(f"⚠️ 在 {self.input_dir} 路径下未找到图片文件")
+            print(f"在 {self.input_dir} 路径下未找到图片文件")
             return None
 
         img_path = os.path.join(self.input_dir, files[0])
@@ -147,7 +145,7 @@ class ProcessImage:
             return tensor
 
         except Exception as e:
-            print(f"❌ 图像处理失败: {str(e)}")
+            print(f"图像处理失败: {str(e)}")
             return None
 
 class ProcessText:
@@ -164,7 +162,7 @@ class ProcessText:
             print(f"   [翻译结果]: {eng_text}")
             return eng_text
         except Exception as e:
-            print(f"⚠️ 文本翻译失败，回退原文输入: {e}")
+            print(f"文本翻译失败，回退原文输入: {e}")
             return raw_text
 
     def get_processed_input(self, raw_text):
@@ -210,7 +208,7 @@ class FusionEngine:
 
     def _calculate_weighted_va(self, probs):
         """
-        逻辑 B：基于你定义的全局 VA_MAP 进行期望计算
+        逻辑 B：基于VA_MAP 进行期望计算
         """
         va_map_np = VA_MAP.cpu().numpy() if torch.is_tensor(VA_MAP) else VA_MAP
         return np.dot(probs, va_map_np)
@@ -299,7 +297,7 @@ class InferenceService:
 # ================= 4. 模拟运行 =================
 
 def main():
-    print("🔔 启动双模态情感推理系统...")
+    print("启动双模态情感推理系统...")
 
     # 初始化
     proc_img = ProcessImage()
@@ -316,7 +314,7 @@ def main():
 
     # 打印原始文本以便确认
     if raw_text:
-        print(f"📖 输入文本: {raw_text}")
+        print(f"输入文本: {raw_text}")
 
     txt_t = proc_txt.get_processed_input(raw_text)
 
@@ -330,27 +328,27 @@ def main():
 
         # --- 1. 图像模型结果展示 (全概率) ---
         if details["img"]:
-            print(f"📸 [图像模型结果]")
+            print(f"[图像模型结果]")
             # 遍历打印所有情绪的概率分布
             for i, prob in enumerate(details['img']['probs']):
                 marker = "⭐" if i == details['img']['max_idx'] else "  "
                 print(f"   {marker} {EMOTIONS[i]:<10}: {prob * 100:>6.2f}%")
-            print(f"   👉 单模态 VA: V:{details['img']['va'][0]:.3f}, A:{details['img']['va'][1]:.3f}")
+            print(f" 单模态 VA: V:{details['img']['va'][0]:.3f}, A:{details['img']['va'][1]:.3f}")
 
         # --- 2. 文本模型结果展示 (全概率) ---
         if details["txt"]:
-            print(f"\n📝 [文本模型结果]")
+            print(f"\n[文本模型结果]")
             # 遍历打印所有情绪的概率分布
             for i, prob in enumerate(details['txt']['probs']):
                 marker = "⭐" if i == details['txt']['max_idx'] else "  "
                 print(f"   {marker} {EMOTIONS[i]:<10}: {prob * 100:>6.2f}%")
-            print(f"   👉 单模态 VA: V:{details['txt']['va'][0]:.3f}, A:{details['txt']['va'][1]:.3f}")
+            print(f"单模态 VA: V:{details['txt']['va'][0]:.3f}, A:{details['txt']['va'][1]:.3f}")
 
         print("\n" + "=" * 45)
 
         # --- 3. 最终融合决策展示 ---
-        print(f"⚖️ [融合权重分配]: 图像 {weights[0]:.2f} : 文本 {weights[1]:.2f}")
-        print(f"🎯 [最终融合坐标]: Valence:{final_va[0]:.4f}, Arousal:{final_va[1]:.4f}")
+        print(f"[融合权重分配]: 图像 {weights[0]:.2f} : 文本 {weights[1]:.2f}")
+        print(f"[最终融合坐标]: Valence:{final_va[0]:.4f}, Arousal:{final_va[1]:.4f}")
 
         # 增加一个象限解析，演示起来更直观
         v, a = final_va[0], final_va[1]
@@ -360,11 +358,11 @@ def main():
             state = "消极 (Negative)"
         else:
             state = "中性 (Neutral)"
-        print(f"📊 综合情感倾向: {state}")
+        print(f"综合情感倾向: {state}")
 
         print("=" * 45)
     else:
-        print("❌ 未检测到有效的输入数据（图片或文本）。")
+        print("未检测到有效的输入数据（图片或文本）。")
 
 
 if __name__ == "__main__":

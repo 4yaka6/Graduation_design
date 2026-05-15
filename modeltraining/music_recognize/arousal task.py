@@ -101,7 +101,7 @@ class ArousalModelPro(nn.Module):
         return self.out(bi_out)
 
 
-# ===================== 3. 数据加载 (双输入版) =====================
+# ===================== 3. 数据加载 =====================
 class ArousalProDataset(Dataset):
     def __init__(self, set_name="train", data_path="data/processed_data"):
         m = np.load(os.path.join(data_path, f"{set_name}_mfcc.npy")).astype(np.float32)  # (N, 96, 44)
@@ -129,7 +129,7 @@ class ArousalProDataset(Dataset):
                 torch.FloatTensor(self.target[s:e]).unsqueeze(-1))
 
 
-# ===================== 4. 训练引擎 =====================
+# 4. 训练
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     os.makedirs("models_Arousal", exist_ok=True)
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     criterion = nn.MSELoss()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=3)
 
-    print(f"🚀 启动图示版 Arousal 模型 | 双支路解耦 | 设备: {device}")
+    print(f"Arousal 设备: {device}")
 
     for epoch in range(1, CONFIG["epochs"] + 1):
         model.train()

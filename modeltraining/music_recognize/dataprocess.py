@@ -62,7 +62,7 @@ def extract_harmony_24(seg_np, sr):
 
 # ================= 3. 主处理流程 =================
 def process_full_dataset():
-    print(f"🚀 启动全特征提取流水线 (Harmony-24版) | 设备: {DEVICE}")
+    print(f"特征提取开始 设备: {DEVICE}")
 
     # A. 加载标签
     df_a = pd.read_csv(os.path.join(DYNAMIC_ANN_DIR, "arousal.csv"))
@@ -140,7 +140,7 @@ def process_full_dataset():
                     gtf_feat = gtf_feat[:12, :]
                 g_list.append(gtf_feat)
 
-                # --- 3. Harmony (24维版) ---
+                # --- 3. Harmony (24维) ---
                 h_feat = extract_harmony_24(seg_np, SR)
                 h_list.append(h_feat)
 

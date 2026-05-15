@@ -9,18 +9,15 @@ import seaborn as sns
 import numpy as np
 from PIL import Image
 
-# ================= 配置与对齐 =================
 CLASS_NAMES = ["Anger", "Frustrated", "Neutral", "Happiness", "Excited", "Sadness"]
 CLASS_TO_IDX = {name: idx for idx, name in enumerate(CLASS_NAMES)}
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# 指向你训练出的最佳模型权重
 MODEL_PATH = "checkpoints_image1/best_model_f1_0.6422.pth"
 TEST_DIR = "reorganized_dataset/test"
 BATCH_SIZE = 32
 
 
-# ================= 1. 模型结构定义 (必须与训练一致) =================
+# ================= 1. 模型结构定义 =================
 class FullResNetEmotion(nn.Module):
     def __init__(self, num_classes=6):
         super().__init__()
@@ -71,11 +68,11 @@ test_transforms = transforms.Compose([
 
 # ================= 3. 核心测试逻辑 =================
 def run_test():
-    print(f"🔍 正在加载测试集: {TEST_DIR}...")
+    print(f"正在加载测试集: {TEST_DIR}...")
     test_dataset = FERTestDataset(TEST_DIR, transform=test_transforms)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
-    print(f"📦 加载权重: {MODEL_PATH}...")
+    print(f"加载权重: {MODEL_PATH}...")
     model = FullResNetEmotion(num_classes=len(CLASS_NAMES)).to(DEVICE)
     model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
     model.eval()
@@ -83,7 +80,7 @@ def run_test():
     all_preds = []
     all_labels = []
 
-    print("🚀 开始批量推理...")
+    print("开始推理...")
     with torch.no_grad():
         for images, labels in test_loader:
             images = images.to(DEVICE)
@@ -99,7 +96,7 @@ def run_test():
     weighted_f1 = f1_score(all_labels, all_preds, average='weighted', labels=range(len(CLASS_NAMES)), zero_division=0)
 
     print("\n" + "=" * 50)
-    print("📈 图像模态测试集性能报告")
+    print("图像模态测试集性能报告")
     print("-" * 50)
     print(f"Overall Accuracy: {acc:.4f}")
     print(f"Macro F1-Score:   {macro_f1:.4f}")
@@ -125,7 +122,7 @@ def plot_cm(y_true, y_pred):
 
     # 2. 计算归一化矩阵（百分比）
     cm_sum = cm.sum(axis=1)[:, np.newaxis]
-    # 处理除以 0 的情况（比如 Frustrated 类样本为 0）
+    # 处理除以 0 的情况（Frustrated 类样本为 0）
     cm_norm = np.divide(cm.astype('float'), cm_sum, out=np.zeros_like(cm.astype('float')), where=cm_sum != 0)
 
     # 3. 构造标注文字矩阵：格式为 "数量\n(百分比%)"
@@ -145,13 +142,13 @@ def plot_cm(y_true, y_pred):
     # 4. 绘图
     plt.figure(figsize=(12, 10), dpi=300)
     sns.heatmap(
-        cm_norm,  # 颜色深浅依然由百分比（召回率）决定，这样对比更直观
-        annot=annot,  # 使用我们自定义的文字矩阵
-        fmt="",  # 因为输入的是字符串，fmt 设为空
-        cmap="Blues",  # 修改底色为蓝色
+        cm_norm,
+        annot=annot,
+        fmt="",
+        cmap="Blues",
         xticklabels=CLASS_NAMES,
         yticklabels=CLASS_NAMES,
-        annot_kws={"size": 10}  # 调整字体大小以适应两行文字
+        annot_kws={"size": 10}
     )
 
     plt.title("Confusion Matrix - Image Modality (ResNet18)", fontsize=16, pad=20)
@@ -161,7 +158,7 @@ def plot_cm(y_true, y_pred):
 
     save_path = "image_confusion_matrix_blue.png"
     plt.savefig(save_path)
-    print(f"✅ 混淆矩阵图已保存至: {save_path}")
+    print(f"混淆矩阵已保存至: {save_path}")
     plt.show()
 
 

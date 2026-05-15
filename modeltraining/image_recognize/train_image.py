@@ -13,9 +13,7 @@ from transformers import get_cosine_schedule_with_warmup
 
 torch.backends.cudnn.benchmark = True
 
-# ==========================================
 # 1. Config
-# ==========================================
 CLASS_NAMES = ["Anger", "Frustrated", "Neutral", "Happiness", "Excited", "Sadness"]
 CLASS_TO_IDX = {name: idx for idx, name in enumerate(CLASS_NAMES)}
 
@@ -29,10 +27,7 @@ SAVE_DIR = "checkpoints_image1"
 
 os.makedirs(SAVE_DIR, exist_ok=True)
 
-
-# ==========================================
-# 2. Dataset & Transforms (保持你的增强逻辑)
-# ==========================================
+# 2. Dataset & Transforms
 class FERDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.img_paths = []
@@ -73,10 +68,7 @@ val_transforms = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-
-# ==========================================
-# 3. Model (冻结 + 强分类头)
-# ==========================================
+# 3. Model
 class FullResNetEmotion(nn.Module):
     def __init__(self, num_classes=6):
         super().__init__()
@@ -90,10 +82,6 @@ class FullResNetEmotion(nn.Module):
     def forward(self, x):
         return self.backbone(x)
 
-
-# ==========================================
-# 4. 修复后的 FocalLoss (解决平滑冲突)
-# ==========================================
 class FocalLoss(nn.Module):
     def __init__(self, alpha=None, gamma=2.0, label_smoothing=0.0):
         super().__init__()
@@ -159,15 +147,11 @@ def plot_metrics(history):
 
     plt.tight_layout()
     plt.savefig(os.path.join(SAVE_DIR, 'training_metrics.png'), dpi=300)
-    print(f"📊 训练指标图已保存至: {SAVE_DIR}/training_metrics.png")
+    print(f"训练指标已保存至: {SAVE_DIR}/training_metrics.png")
     plt.close()
 
-# ==========================================
-# 5. Main Train (整合早停逻辑)
-# ==========================================
+# 4. Main Train
 def main():
-    print(f"🚀 Device: {DEVICE} ")
-
     history = {
         'train_loss': [], 'val_loss': [],
         'macro_f1': [], 'weighted_f1': []
@@ -227,7 +211,7 @@ def main():
         if val_f1 > 0.65 and val_loss < 0.6:
             stable_name = f"stable_ep{epoch + 1}_f1_{val_f1:.4f}_loss_{val_loss:.4f}.pth"
             torch.save(model.state_dict(), os.path.join(SAVE_DIR, stable_name))
-            print(f"🛡️ Stable Model Captured: {stable_name}")
+            print(f"Stable Model Captured: {stable_name}")
 
         # --- 早停判定逻辑 ---
         if val_f1 > best_f1:
@@ -235,17 +219,17 @@ def main():
             early_stop_counter = 0  # 重置计数器
             save_name = f"best_model_f1_{val_f1:.4f}.pth"
             torch.save(model.state_dict(), os.path.join(SAVE_DIR, save_name))
-            print(f"✅ 模型表现提升，已保存: {save_name}")
+            print(f"模型表现提升，已保存: {save_name}")
         else:
             early_stop_counter += 1
-            print(f"⚠️ 表现未提升，早停计数: {early_stop_counter}/{PATIENCE}")
+            print(f"表现未提升，早停计数: {early_stop_counter}/{PATIENCE}")
 
         if early_stop_counter >= PATIENCE:
-            print(f"🛑 连续 {PATIENCE} 个 Epoch 未提升，触发早停。")
+            print(f"连续 {PATIENCE} 个 Epoch 未提升，触发早停。")
             break
 
     plot_metrics(history)
-    print(f"🎉 Training Complete. Best Macro F1: {best_f1:.4f}")
+    print(f"Training Complete. Best Macro F1: {best_f1:.4f}")
 
 if __name__ == "__main__":
     main()

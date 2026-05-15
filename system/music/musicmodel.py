@@ -24,8 +24,7 @@ class ArousalModel(nn.Module):
         )
         self.gtf_lstm = nn.LSTM(input_size=132, hidden_size=256, batch_first=True)
 
-        # --- 融合层 (修改处 1：256 -> 128) ---
-        # 这里的输入是 256+256=512，输出必须改为 128 以匹配权重文件 [128, 512]
+        # --- 融合层 (256 -> 128) ---
         self.fusion_dense = nn.Sequential(
             nn.Linear(256 + 256, 128),
             nn.ReLU(),
@@ -34,12 +33,12 @@ class ArousalModel(nn.Module):
 
         self.global_bilstm = nn.LSTM(
             input_size=128,
-            hidden_size=128,  # 这里保持 128 匹配 [512, 128] 的 ih 权重
+            hidden_size=128,
             batch_first=True,
             bidirectional=True
         )
 
-        # --- 输出层 (修改处 3：128*2 保持不变，因为 BiLSTM 128 对应 256) ---
+        # --- 输出层 ---
         self.out = nn.Linear(128 * 2, 1)
 
     def forward(self, m, g):

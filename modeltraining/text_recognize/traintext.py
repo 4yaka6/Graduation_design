@@ -11,10 +11,8 @@ import seaborn as sns
 from torch import amp
 from transformers import get_cosine_schedule_with_warmup
 import time
+import matplotlib.pyplot as plt
 
-# ======================
-# 配置类
-# ======================
 class Config:
     # --- 路径 ---
     DATA_DIR = ""
@@ -38,7 +36,7 @@ class Config:
     LAMBDA_CLS = 1.0
     LAMBDA_REG = 0.3
     # --- 对话级参数 ---
-    MAX_SEQ_LEN = 64        # 自动使用最长对话长度
+    MAX_SEQ_LEN = 64
     GRAD_CLIP = 1.0
 
 # 创建保存目录
@@ -215,9 +213,6 @@ class RobertaEmotionFineTuner(nn.Module):
         va = self.regressor_head(cls_output)
         return logits, va
 
-# ======================
-# 混淆矩阵
-# ======================
 def save_confusion_matrix(y_true, y_pred, class_names, epoch):
     cm = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(8, 6))
@@ -228,11 +223,6 @@ def save_confusion_matrix(y_true, y_pred, class_names, epoch):
     plt.xlabel('Predicted')
     plt.savefig(os.path.join(Config.MODEL_SAVE_DIR, f'cm_epoch_{epoch}.png'))
     plt.close()
-
-# ======================
-# 评估函数
-# ======================
-import matplotlib.pyplot as plt
 
 def plot_training_history(train_losses, val_losses, macro_f1s, weighted_f1s):
     epochs = range(1, len(train_losses) + 1)
@@ -247,9 +237,7 @@ def plot_training_history(train_losses, val_losses, macro_f1s, weighted_f1s):
     plt.legend()
     plt.grid(True)
     plt.savefig('loss_history.png', dpi=300)
-    plt.close() # 及时关闭防止内存占用
-    print("📊 Loss 变化图已保存至: loss_history.png")
-
+    plt.close()
     # --- 图 2：F1-Score 变化曲线 ---
     plt.figure(figsize=(10, 6))
     plt.plot(epochs, macro_f1s, 'g-s', label='Macro F1')
@@ -261,7 +249,6 @@ def plot_training_history(train_losses, val_losses, macro_f1s, weighted_f1s):
     plt.grid(True)
     plt.savefig('f1_history.png', dpi=300)
     plt.close()
-    print("📊 F1 变化图已保存至: f1_history.png")
 
 def evaluate_finetune(model, loader, device, criterion_cls, criterion_reg, class_names, epoch):
     model.eval()
@@ -288,14 +275,11 @@ def evaluate_finetune(model, loader, device, criterion_cls, criterion_reg, class
     macro_f1 = f1_score(all_labels, all_preds, average='macro', zero_division=0)
     weighted_f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
 
-    print(f"\n📊 评估报告 (Epoch {epoch}):")
+    print(f"评估报告 (Epoch {epoch}):")
     print(classification_report(all_labels, all_preds, target_names=class_names, digits=4, zero_division=0))
 
     return weighted_f1, macro_f1, val_loss / len(loader)
 
-# ======================
-# 训练
-# ======================
 def train():
     train_losses = []
     val_losses = []
@@ -340,7 +324,7 @@ def train():
     best_macro_f1 = 0
     patience_counter = 0
 
-    print(f"🚀 开始训练！预计总步数: {total_steps}, 预热步数: {warmup_steps}")
+    print(f"训练开始...")
 
     for epoch in range(1, Config.EPOCHS + 1):
         start_time = time.time()
@@ -405,23 +389,15 @@ def train():
         macro_f1s.append(val_m_f1)
         weighted_f1s.append(val_w_f1)
 
-        if avg_val_loss < 1.1 and val_m_f1 > 0.48:
-            # 构造文件名：例如 loss_1.0521_f1_0.4932.pth
-            checkpoint_name = f"loss_{avg_val_loss:.4f}_f1_{val_m_f1:.4f}.pth"
-            save_path = os.path.join(Config.MODEL_SAVE_DIR, checkpoint_name)
-
-            torch.save(model.state_dict(), save_path)
-            print(f"💾 达标模型已存档: {checkpoint_name}")
-
         if val_m_f1 > best_macro_f1:
             best_macro_f1 = val_m_f1
             torch.save(model.state_dict(), os.path.join(Config.MODEL_SAVE_DIR, Config.BEST_MODEL_NAME))
-            print(f"⭐ 发现更佳模型，已保存！")
+            print(f"发现更佳模型，已保存！")
             patience_counter = 0
         else:
             patience_counter += 1
             if patience_counter >= Config.PATIENCE:
-                print(f"🛑 早停触发，训练结束。")
+                print(f"早停触发，训练结束。")
                 break
     plot_training_history(train_losses, val_losses, macro_f1s, weighted_f1s)
 if __name__ == "__main__":
