@@ -1,20 +1,14 @@
-CLDNN_BILSTM
-PIL
 PyQt5==5.15.11
 csv
 cv2
 deep_translator==1.11.4
 gammatone==1.0.3
-inference
 librosa==0.11.0
-make_index
 matplotlib==3.10.8
-musicmodel
 numpy==2.4.4
 pandas==2.3.3
 pickle
 pydub==0.25.1
-pypdf
 seaborn==0.13.2
 shutil
 sklearn
@@ -23,5 +17,4 @@ torchaudio==2.11.0
 torchvision==0.25.0+cu126
 tqdm==4.67.3
 traceback
-traintext
 transformers==4.44.1
